@@ -1,13 +1,5 @@
 package semmiedev.disc_jockey;
 
-import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.lang3.tuple.Pair;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -23,6 +15,14 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Tuner {
 
@@ -57,6 +57,118 @@ public class Tuner {
 
     public boolean isSongSelected() {
         return noteBlocks != null && missingInstrumentBlocks != null && selectedSong != null;
+    }
+
+    public boolean rescanNoteBlocks(Minecraft client) {
+        if (!isSongSelected()) return false;
+
+        final LocalPlayer player = client.player;
+        final ClientLevel world = client.level;
+        if (player == null || world == null) return false;
+
+        HashMap<NoteBlockInstrument, ArrayList<BlockPos>> noteblocksForInstrument = new HashMap<>();
+        for (NoteBlockInstrument instrument : NoteBlockInstrument.values())
+            noteblocksForInstrument.put(instrument, new ArrayList<>());
+        final Vec3 playerEyePos = player.getEyePosition();
+
+        final int maxOffset;
+        if (Main.config.expectedServerVersion == Config.ExpectedServerVersion.v1_20_4_Or_Earlier) {
+            maxOffset = 7;
+        } else if (Main.config.expectedServerVersion == Config.ExpectedServerVersion.v1_20_5_Or_Later) {
+            maxOffset = (int) Math.ceil(player.blockInteractionRange() + 1.0 + 1.0);
+        } else {
+            maxOffset = Math.min(7, (int) Math.ceil(player.blockInteractionRange() + 1.0 + 1.0));
+        }
+        final ArrayList<Integer> orderedOffsets = new ArrayList<>();
+        for (int offset = 0; offset <= maxOffset; offset++) {
+            orderedOffsets.add(offset);
+            if (offset != 0) orderedOffsets.add(offset * -1);
+        }
+
+        for (NoteBlockInstrument instrument : noteblocksForInstrument.keySet().toArray(new NoteBlockInstrument[0])) {
+            for (int y : orderedOffsets) {
+                for (int x : orderedOffsets) {
+                    for (int z : orderedOffsets) {
+                        Vec3 vec3d = playerEyePos.add(x, y, z);
+                        BlockPos blockPos = new BlockPos(Mth.floor(vec3d.x), Mth.floor(vec3d.y), Mth.floor(vec3d.z));
+                        if (!Util.canInteractWith(player, blockPos))
+                            continue;
+                        BlockState blockState = world.getBlockState(blockPos);
+                        NoteBlockInstrument blockInstrument = getInstrument(client, blockPos, blockState);
+                        if (blockInstrument == null) continue;
+
+                        if (blockInstrument == instrument)
+                            noteblocksForInstrument.get(instrument).add(blockPos);
+                    }
+                }
+            }
+        }
+
+        if (!instrumentMap.isEmpty()) {
+            HashMap<NoteBlockInstrument, ArrayList<BlockPos>> newNoteblocksForInstrument = new HashMap<>();
+            for (NoteBlockInstrument orig : noteblocksForInstrument.keySet()) {
+                NoteBlockInstrument mappedInstrument = instrumentMap.getOrDefault(orig, orig);
+                if (mappedInstrument == null) {
+                    newNoteblocksForInstrument.put(orig, null);
+                    continue;
+                }
+                newNoteblocksForInstrument.put(orig, noteblocksForInstrument.getOrDefault(mappedInstrument, new ArrayList<>()));
+            }
+            noteblocksForInstrument = newNoteblocksForInstrument;
+        }
+
+        HashMap<NoteBlockInstrument, HashMap<Byte, BlockPos>> newNoteBlocks = new HashMap<>();
+        ArrayList<Note> capturedNotes = new ArrayList<>();
+
+        for (Note note : selectedSong.uniqueNotes) {
+            ArrayList<BlockPos> availableBlocks = noteblocksForInstrument.get(note.instrument());
+            if (availableBlocks == null) {
+                capturedNotes.add(note);
+                newNoteBlocks.computeIfAbsent(note.instrument(), k -> new HashMap<>()).put(note.note(), null);
+                continue;
+            }
+
+            BlockPos currentBlockPos = null;
+            if (noteBlocks != null && noteBlocks.get(note.instrument()) != null) {
+                currentBlockPos = noteBlocks.get(note.instrument()).get(note.note());
+            }
+
+            if (currentBlockPos != null && availableBlocks.contains(currentBlockPos)) {
+                capturedNotes.add(note);
+                availableBlocks.remove(currentBlockPos);
+                newNoteBlocks.computeIfAbsent(note.instrument(), k -> new HashMap<>()).put(note.note(), currentBlockPos);
+                continue;
+            }
+
+            BlockPos bestBlockPos = null;
+            int bestBlockTuningSteps = Integer.MAX_VALUE;
+            for (BlockPos blockPos : availableBlocks) {
+                int wantedNote = note.note();
+                int currentNote = world.getBlockState(blockPos).getValue(BlockStateProperties.NOTE);
+                int tuningSteps = wantedNote >= currentNote ? wantedNote - currentNote : (25 - currentNote) + wantedNote;
+
+                if (tuningSteps < bestBlockTuningSteps) {
+                    bestBlockPos = blockPos;
+                    bestBlockTuningSteps = tuningSteps;
+                }
+            }
+
+            if (bestBlockPos != null) {
+                capturedNotes.add(note);
+                availableBlocks.remove(bestBlockPos);
+                newNoteBlocks.computeIfAbsent(note.instrument(), k -> new HashMap<>()).put(note.note(), bestBlockPos);
+            }
+        }
+
+        ArrayList<Note> missingNotes = new ArrayList<>(selectedSong.uniqueNotes);
+        missingNotes.removeAll(capturedNotes);
+
+        if (missingNotes.isEmpty()) {
+            noteBlocks = newNoteBlocks;
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void reset() {

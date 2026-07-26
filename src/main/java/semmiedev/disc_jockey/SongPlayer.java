@@ -231,9 +231,21 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
                     continue;
                 }
                 if (!Util.canInteractWith(client.player, blockPos)) {
-                    stop();
-                    client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
-                    return;
+                    if (!tuner.rescanNoteBlocks(client)) {
+                        stop();
+                        client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
+                        return;
+                    }
+                    var newInstrumentMap = tuner.getNoteBlocks().get(Note.INSTRUMENTS[(byte)(note >> Note.INSTRUMENT_SHIFT)]);
+                    if (newInstrumentMap == null) {
+                        index++;
+                        continue;
+                    }
+                    blockPos = newInstrumentMap.get((byte)(note >> Note.NOTE_SHIFT));
+                    if (blockPos == null) {
+                        index++;
+                        continue;
+                    }
                 }
                 Vec3 unit = Vec3.upFromBottomCenterOf(blockPos, 0.5).subtract(client.player.getEyePosition()).normalize();
                 if (rateLimiter.canSendLookPacket()) {
