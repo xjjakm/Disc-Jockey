@@ -114,6 +114,9 @@ public class Config implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean showProgressBarOverlay = true;
 
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean autoSwitchNoteBlocks = true;
+
     @ConfigEntry.Gui.Excluded
     public ArrayList<String> favorites = new ArrayList<>();
 

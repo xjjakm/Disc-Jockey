@@ -231,6 +231,11 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
                     continue;
                 }
                 if (!Util.canInteractWith(client.player, blockPos)) {
+                    if (!Main.config.autoSwitchNoteBlocks) {
+                        stop();
+                        client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
+                        return;
+                    }
                     if (!tuner.rescanNoteBlocks(client)) {
                         stop();
                         client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
