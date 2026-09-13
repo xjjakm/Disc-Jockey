@@ -1,6 +1,4 @@
 Download the mod at GitHub release or Actions 
-
-Modrinth 也许会上线
 ### 本分支特性
 1. 多目录支持
 2. 更好的gui
