@@ -14,6 +14,7 @@ import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
@@ -269,7 +270,7 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
                 if (rateLimiter.canSendSwingPacket()) {
                     client.executeIfPossible(() -> {
                         if (client.player != null) {
-                            client.player.swing(InteractionHand.MAIN_HAND);
+                            client.player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, false);
                         }
                     });
                     rateLimiter.onSwingPacketSent();

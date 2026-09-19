@@ -23,7 +23,6 @@ import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
 import semmiedev.disc_jockey.gui.hud.PlaybackProgressOverlay;
 import semmiedev.disc_jockey.gui.screen.DiscJockeyScreen;
 
@@ -67,8 +66,8 @@ public class Main implements ClientModInitializer {
         // 修复按键绑定
         KeyMapping openScreenKeyBind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 MOD_ID + ".key_bind.open_screen",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_J,
+                InputConstants.Type.KEYBOARD,
+                InputConstants.KEY_J,
                 KeyMapping.Category.MISC
         ));
 
