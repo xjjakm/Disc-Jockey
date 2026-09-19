@@ -82,7 +82,7 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
 
     public synchronized void start(Song song) {
         if (!Main.config.hideWarning && !warned) {
-            Minecraft.getInstance().gui.hud.getChat().addMessage(Component.translatable("disc_jockey.warning").withStyle(ChatFormatting.BOLD, ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError());
+            Minecraft.getInstance().gui.hud.getChat().addMessage(Component.translatable("disc_jockey.warning").withStyle(ChatFormatting.BOLD, ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system());
             warned = true;
             return;
         }
@@ -211,7 +211,7 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
             GameType gameMode = client.gameMode == null ? null : client.gameMode.getPlayerMode();
             // In the best case, gameMode would only be queried in sync Ticks, no here
             if (gameMode == null || !gameMode.isSurvival()) {
-                client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.invalid_game_mode", gameMode == null ? "unknown" : gameMode.getLongDisplayName()).withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
+                client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.invalid_game_mode", gameMode == null ? "unknown" : gameMode.getLongDisplayName()).withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system()));
                 stop();
                 return;
             }
@@ -233,12 +233,12 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
                 if (!Util.canInteractWith(client.player, blockPos)) {
                     if (!Main.config.autoSwitchNoteBlocks) {
                         stop();
-                        client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
+                        client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system()));
                         return;
                     }
                     if (!tuner.rescanNoteBlocks(client)) {
                         stop();
-                        client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
+                        client.executeIfPossible(() -> client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID+".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system()));
                         return;
                     }
                     var newInstrumentMap = tuner.getNoteBlocks().get(Note.INSTRUMENTS[(byte)(note >> Note.INSTRUMENT_SHIFT)]);
@@ -314,13 +314,13 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
             if (!tuner.selectSong(client, song)) {
                 if (!tuner.getMissingInstrumentBlocks().isEmpty()) {
                     ChatComponent chatHud = Minecraft.getInstance().gui.hud.getChat();
-                    chatHud.addMessage(Component.translatable(Main.MOD_ID + ".player.invalid_note_blocks").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError());
-                    tuner.getMissingInstrumentBlocks().forEach((block, integer) -> chatHud.addMessage(Component.literal(block.getName().getString() + " × " + integer).withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError()));
+                    chatHud.addMessage(Component.translatable(Main.MOD_ID + ".player.invalid_note_blocks").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system());
+                    tuner.getMissingInstrumentBlocks().forEach((block, integer) -> chatHud.addMessage(Component.literal(block.getName().getString() + " × " + integer).withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system()));
                     stop();
                     return;
                 } else {
                     Main.LOGGER.error("Failed to select song to unknown / unexpected reason!");
-                    client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID + ".selectsong_fail_unknown").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError());
+                    client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID + ".selectsong_fail_unknown").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system());
                     stop();
                     return;
                 }
@@ -334,12 +334,12 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
             Tuner.TuningFail tuningFail = tuner.tickTuning(client);
             if (tuningFail == Tuner.TuningFail.MovedTooFarAway) {
                 stop();
-                client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID + ".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError());
+                client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID + ".player.too_far").withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system());
                 return;
             } else if (tuningFail != null) {
                 stop();
                 Main.LOGGER.error("Tuning song failed: " + tuningFail.name());
-                client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID + ".player.tuning_fail_other", tuningFail.name()).withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.chatError());
+                client.gui.hud.getChat().addMessage(Component.translatable(Main.MOD_ID + ".player.tuning_fail_other", tuningFail.name()).withStyle(ChatFormatting.RED), null, GuiMessageSource.PLAYER, GuiMessageTag.system());
                 return;
             }
         }
