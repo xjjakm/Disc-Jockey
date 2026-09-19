@@ -20,7 +20,7 @@ import semmiedev.disc_jockey.mixin.EntryListWidgetAccessor;
 
 public class SongListWidget extends AbstractSelectionList<SongListWidget.Entry> {
     private static final String FOLDER_EMOJI = "📁";
-    private static final int LEFT_PADDING = 10;
+    private static final int LEFT_PADDING = 0;
 
     public static abstract class Entry extends AbstractSelectionList.Entry<Entry> {
         public abstract boolean isSelected();

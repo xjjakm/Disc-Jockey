@@ -24,7 +24,7 @@ public class PlaybackProgressOverlay implements HudElement {
             int screenHeight = context.guiHeight();
 
             int barX = screenWidth / 2 - PROGRESS_BAR_WIDTH / 2;
-            int barY = screenHeight - 55;
+            int barY = screenHeight - 70;
 
             renderProgressBar(context, barX, barY, Main.SONG_PLAYER.getProgress(), Main.SONG_PLAYER.getFormattedTime(), 0x8000FF00);
         }
@@ -34,7 +34,7 @@ public class PlaybackProgressOverlay implements HudElement {
             int screenHeight = context.guiHeight();
 
             int barX = screenWidth / 2 - PROGRESS_BAR_WIDTH / 2;
-            int barY = screenHeight - 42;
+            int barY = screenHeight - 57;
 
             renderProgressBar(context, barX, barY, Main.PREVIEWER.getProgress(), Main.PREVIEWER.getFormattedTime(), 0x80FF0000);
         }
