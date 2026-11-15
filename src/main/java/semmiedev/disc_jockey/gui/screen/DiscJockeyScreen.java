@@ -63,6 +63,8 @@ public class DiscJockeyScreen extends Screen {
     private SongListWidget songListWidget;
     private Button playButton, previewButton;
     public boolean shouldFilter;
+    /** When true, the list rebuild selects the first entry (".." when inside a folder). Set when navigating folders. */
+    public boolean selectFirstEntryAfterFilter;
     private String query = "";
     public SongLoader.SongFolder currentFolder = null;
     private boolean hasAutoScrolled = false;
@@ -447,6 +449,12 @@ public class DiscJockeyScreen extends Screen {
 
             for (SongListWidget.Entry entry : newEntries) {
                 entry.setSelected(false);
+            }
+
+            // Focus the first entry (".." when inside a folder) after navigating to another folder
+            if (selectFirstEntryAfterFilter && !newEntries.isEmpty()) {
+                selectFirstEntryAfterFilter = false;
+                songListWidget.setSelected(newEntries.get(0));
             }
 
             Song selectedSong = null;

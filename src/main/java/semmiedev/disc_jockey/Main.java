@@ -63,12 +63,12 @@ public class Main implements ClientModInitializer {
         SongLoader.loadSongs();
 
         //KeyBinding openScreenKeyBind = KeyBindingHelper.registerKeyBinding(new KeyBinding(MOD_ID+".key_bind.open_screen", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_J, "key.category."+MOD_ID));
-        // 修复按键绑定
+        // Fix key binding registration
         KeyMapping openScreenKeyBind = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 MOD_ID + ".key_bind.open_screen",
                 InputConstants.Type.KEYBOARD,
                 InputConstants.KEY_J,
-                KeyMapping.Category.MISC
+                KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"))
         ));
 
         ClientTickEvents.START_CLIENT_TICK.register(new ClientTickEvents.StartTick() {

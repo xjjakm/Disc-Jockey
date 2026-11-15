@@ -16,6 +16,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -91,12 +93,12 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
         tick = 0;
         index = 0;
         this.song = song;
-        // 确保歌曲的音符数据已加载
+        // Ensure the song's note data is loaded
         try {
             SongLoader.ensureSongLoaded(song);
         } catch (IOException e) {
             Main.LOGGER.error("Failed to load song data for {}", song.fileName, e);
-            // 不开始播放
+            // Do not start playback
             return;
         }
         //Main.LOGGER.info("Song length: " + song.length + " and tempo " + song.tempo);
@@ -253,13 +255,23 @@ public class SongPlayer implements ClientTickEvents.StartLevelTick {
                         continue;
                     }
                 }
+                // Check if the block needs tuning (e.g. re-tuned by another player or the block was replaced)
+                if (Main.config.retuneReplacedNoteBlocks && client.level != null) {
+                    int wantedNote = (byte) (note >> Note.NOTE_SHIFT);
+                    BlockState blockState = client.level.getBlockState(blockPos);
+                    if (!blockState.hasProperty(BlockStateProperties.NOTE) || blockState.getValue(BlockStateProperties.NOTE) != wantedNote) {
+                        // Out of tune: pause playback (isTuned() gate) and let tickTuning() fix it,
+                        // then playback resumes from the same note without advancing the song position
+                        tuner.invalidateTuned();
+                        return;
+                    }
+                }
                 Vec3 unit = Vec3.upFromBottomCenterOf(blockPos, 0.5).subtract(client.player.getEyePosition()).normalize();
                 if (rateLimiter.canSendLookPacket()) {
                     Objects.requireNonNull(client.getConnection()).send(new ServerboundMovePlayerPacket.Rot(Mth.wrapDegrees((float) (Mth.atan2(unit.z, unit.x) * 57.2957763671875) - 90.0f), Mth.wrapDegrees((float) (-(Mth.atan2(unit.y, Math.sqrt(unit.x * unit.x + unit.z * unit.z)) * 57.2957763671875))), client.player.onGround(), client.player.horizontalCollision));                        rateLimiter.onLookPacketSent();
                     rateLimiter.onLookPacketSent();
                 }
                 if (rateLimiter.canSendAnyPacket()) {
-                    // TODO: 5/30/2022 Check if the block needs tuning
                     client.player.connection.send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, blockPos, Direction.UP, 0));
                     rateLimiter.onPacketSent();
                 }

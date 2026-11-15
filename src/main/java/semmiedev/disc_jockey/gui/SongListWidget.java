@@ -5,10 +5,12 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSelectionList;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import semmiedev.disc_jockey.Main;
 import semmiedev.disc_jockey.Song;
@@ -16,7 +18,6 @@ import semmiedev.disc_jockey.SongLoader;
 import semmiedev.disc_jockey.SongLoader.SongFolder;
 import semmiedev.disc_jockey.Util;
 import semmiedev.disc_jockey.gui.screen.DiscJockeyScreen;
-import semmiedev.disc_jockey.mixin.EntryListWidgetAccessor;
 
 public class SongListWidget extends AbstractSelectionList<SongListWidget.Entry> {
     private static final String FOLDER_EMOJI = "📁";
@@ -64,9 +65,62 @@ public class SongListWidget extends AbstractSelectionList<SongListWidget.Entry> 
         this.replaceEntries(entries);
     }
 
-    @SuppressWarnings("unchecked")
-    public java.util.List<SongListWidget.Entry> getModifiableChildren() {
-        return (java.util.List<SongListWidget.Entry>) ((EntryListWidgetAccessor) this).getChildrenList();
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        // SDL keycodes (MC 26.3 uses SDL input): DOWN=1073741905, UP=1073741906, RETURN=13, KP_ENTER=1073741881
+        switch (event.shortcutKey()) {
+            case 1073741905 -> { // DOWN: select next entry
+                moveSelection(1);
+                return true;
+            }
+            case 1073741906 -> { // UP: select previous entry
+                moveSelection(-1);
+                return true;
+            }
+            case 13, 1073741881 -> { // ENTER (Return / Keypad Enter): play selected song / enter selected folder
+                if (event.hasShiftDown()) {
+                    return previewSelected();
+                }
+                return activateSelected();
+            }
+        }
+        return super.keyPressed(event);
+    }
+
+    private void moveSelection(int direction) {
+        var entries = this.children();
+        if (entries.isEmpty()) return;
+        int current = entries.indexOf(this.getSelected());
+        int next;
+        if (current == -1) {
+            next = direction > 0 ? 0 : entries.size() - 1;
+        } else {
+            next = Mth.clamp(current + direction, 0, entries.size() - 1);
+        }
+        Entry entry = entries.get(next);
+        this.setSelected(entry);
+        this.scrollToEntry(entry);
+    }
+
+    private boolean activateSelected() {
+        Entry selected = this.getSelected();
+        if (selected instanceof SongEntry songEntry) {
+            Main.SONG_PLAYER.start(songEntry.song);
+            return true;
+        } else if (selected instanceof FolderEntry folderEntry) {
+            folderEntry.navigate();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean previewSelected() {
+        Entry selected = this.getSelected();
+        if (selected instanceof SongEntry songEntry) {
+            Main.PREVIEWER.start(songEntry.song);
+            return true;
+        }
+        return false;
     }
 
     public int getItemHeight() {
@@ -143,7 +197,6 @@ public class SongListWidget extends AbstractSelectionList<SongListWidget.Entry> 
         public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
             double mouseX = click.x();
             double mouseY = click.y();
-            int button = click.button();
 
             if (isOverFavoriteButton(mouseX, mouseY)) {
                 favorite = !favorite;
@@ -226,27 +279,26 @@ public class SongListWidget extends AbstractSelectionList<SongListWidget.Entry> 
 
         @Override
         public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
-            double mouseX = click.x();
-            double mouseY = click.y();
-            int button = click.button();
+            navigate();
+            songListWidget.setSelected(this);
+            return true;
+        }
 
-            if (button == 0) {
-                if (songListWidget.getParentScreen() instanceof DiscJockeyScreen screen) {
-                    if (this.folder == null) {
-                        SongFolder parent = screen.findParentFolder(screen.currentFolder);
-                        if (parent != null || SongLoader.FOLDERS.contains(screen.currentFolder)) {
-                            screen.currentFolder = parent;
-                            screen.shouldFilter = true;
-                        }
-                    } else {
-                        screen.currentFolder = this.folder;
-                        screen.shouldFilter = true;
-                    }
-                    songListWidget.setSelected(this);
-                    return true;
+        /** Opens this folder (or goes to the parent folder for the ".." entry). */
+        private void navigate() {
+            if (!(songListWidget.getParentScreen() instanceof DiscJockeyScreen screen)) return;
+            if (this.folder == null) {
+                SongFolder parent = screen.findParentFolder(screen.currentFolder);
+                if (parent != null || SongLoader.FOLDERS.contains(screen.currentFolder)) {
+                    screen.currentFolder = parent;
+                    screen.shouldFilter = true;
+                    screen.selectFirstEntryAfterFilter = true;
                 }
+            } else {
+                screen.currentFolder = this.folder;
+                screen.shouldFilter = true;
+                screen.selectFirstEntryAfterFilter = true;
             }
-            return false;
         }
 
         @Override

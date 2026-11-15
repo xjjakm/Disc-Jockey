@@ -42,6 +42,14 @@ public class Tuner {
         return isSongSelected() && tunedAfter != Util.TIMESTAMP_UNINITIALIZED && tunedAfter <= Util.now();
     }
 
+    /**
+     * Invalidate the tuning state so tickTuning() re-checks and re-tunes on the next client tick.
+     * Used when a note block's pitch changed during playback (e.g. re-tuned by another player) or the block was replaced.
+     */
+    public void invalidateTuned() {
+        if (isSongSelected()) tunedAfter = Util.TIMESTAMP_UNINITIALIZED;
+    }
+
     public void cleanup() {
         // Clear outdated note predictions
         ArrayList<BlockPos> outdatedPredictions = new ArrayList<>();
@@ -401,19 +409,20 @@ public class Tuner {
             BlockPos blockPos = noteBlocks.get(note.instrument()).get(note.note());
             if (blockPos == null) continue;
             BlockState blockState = client.level.getBlockState(blockPos);
+            if (!blockState.hasProperty(BlockStateProperties.NOTE)) {
+                // Note block was broken or replaced: drop cached blocks so the song
+                // gets re-selected (full rescan) on the next tick instead of crashing
+                resetTuned();
+                return null;
+            }
             int assumedNote = notePredictions.containsKey(blockPos) ? notePredictions.get(blockPos).getLeft() : blockState.getValue(BlockStateProperties.NOTE);
 
-            if (blockState.hasProperty(BlockStateProperties.NOTE)) {
-                if (assumedNote == note.note() && blockState.getValue(BlockStateProperties.NOTE) == note.note())
-                    fullyTunedBlocks++;
-                if (assumedNote != note.note()) {
-                    if (!Util.canInteractWith(client.player, blockPos))
-                        return TuningFail.MovedTooFarAway;
-                    untunedNotes.put(blockPos, blockState.getValue(BlockStateProperties.NOTE));
-                }
-            } else {
-                noteBlocks = null;
-                break;
+            if (assumedNote == note.note() && blockState.getValue(BlockStateProperties.NOTE) == note.note())
+                fullyTunedBlocks++;
+            if (assumedNote != note.note()) {
+                if (!Util.canInteractWith(client.player, blockPos))
+                    return TuningFail.MovedTooFarAway;
+                untunedNotes.put(blockPos, blockState.getValue(BlockStateProperties.NOTE));
             }
         }
 

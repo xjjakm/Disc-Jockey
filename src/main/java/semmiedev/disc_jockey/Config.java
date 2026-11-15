@@ -117,6 +117,9 @@ public class Config implements ConfigData {
     @ConfigEntry.Gui.Tooltip(count = 2)
     public boolean autoSwitchNoteBlocks = false;
 
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean retuneReplacedNoteBlocks = true;
+
     @ConfigEntry.Gui.Excluded
     public ArrayList<String> favorites = new ArrayList<>();
 

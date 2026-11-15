@@ -26,7 +26,7 @@ public class Previewer implements ClientTickEvents.StartLevelTick {
     private PlayMode playMode = PlayMode.STOP_AFTER;
 
     public void start(Song song) {
-        // 确保歌曲的音符数据已加载
+        // Ensure the song's note data is loaded
         try {
             SongLoader.ensureSongLoaded(song);
         } catch (IOException e) {
